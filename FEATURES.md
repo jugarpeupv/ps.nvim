@@ -1,4 +1,4 @@
-# ps.nvim - Feature Implementation
+# processmonitor.nvim - Feature Implementation
 
 ## Completed Features ✅
 
@@ -42,7 +42,7 @@ require("ps").setup({
 
 ## File Structure
 ```
-ps.nvim/
+processmonitor.nvim/
 ├── lua/
 │   └── ps/
 │       ├── init.lua      # Main plugin logic

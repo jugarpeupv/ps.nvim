@@ -1,4 +1,4 @@
-# ps.nvim
+# processmonitor.nvim
 
 A Neovim plugin to view and manage processes from within Neovim.
 
@@ -18,7 +18,7 @@ A Neovim plugin to view and manage processes from within Neovim.
 
 ```lua
 {
-  "yourusername/ps.nvim",
+  "yourusername/processmonitor.nvim",
   config = function()
     require("ps").setup({
       -- Optional configuration
@@ -33,7 +33,7 @@ A Neovim plugin to view and manage processes from within Neovim.
 
 ```lua
 use {
-  "yourusername/ps.nvim",
+  "yourusername/processmonitor.nvim",
   config = function()
     require("ps").setup()
   end,
@@ -117,7 +117,7 @@ The filter is case-insensitive and searches across the entire process line.
 
 ## Configuration
 
-You can configure ps.nvim by passing options to the setup function:
+You can configure processmonitor.nvim by passing options to the setup function:
 
 ```lua
 require("ps").setup({
