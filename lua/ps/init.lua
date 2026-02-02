@@ -10,6 +10,7 @@ local state = {
 	bufnr = nil,
 	filter = nil,
 	full_output = {},
+	sort_by = nil, -- nil, "cpu", or "mem"
 }
 
 function M.setup(opts)
@@ -96,14 +97,14 @@ local function refresh()
 		return
 	end
 
-	-- Format the output with proper alignment and RSS in MB
+	-- Format the output with proper alignment and RSS in MB, VSZ in TB
 	local formatted_output = {}
 	for i, line in ipairs(output) do
 		if i == 1 then
-			-- Header line - update RSS to RSS(MB)
+			-- Header line - update VSZ to VSZ(TB) and RSS to RSS(MB)
 			local header = string.format(
-				"%-15s %6s %5s %4s %10s %10s %4s %5s %8s %9s %s",
-				"USER", "PID", "%CPU", "%MEM", "VSZ", "RSS(MB)", "TT", "STAT", "STARTED", "TIME", "COMMAND"
+				"%-15s %6s %5s %4s %11s %11s %4s %5s %8s %9s %s",
+				"USER", "PID", "%CPU", "%MEM", "VSZ(TB)", "RSS(MB)", "TT", "STAT", "STARTED", "TIME", "COMMAND"
 			)
 			table.insert(formatted_output, header)
 		else
@@ -121,18 +122,22 @@ local function refresh()
 			local command = line:match(string.rep("%S+%s+", 10) .. "(.*)")
 			
 			if #parts >= 10 then
+				-- Convert VSZ from KB to TB
+				local vsz_kb = tonumber(parts[5])
+				local vsz_tb = vsz_kb and string.format("%.3f TB", vsz_kb / 1073741824) or parts[5]
+				
 				-- Convert RSS from KB to MB
 				local rss_kb = tonumber(parts[6])
-				local rss_mb = rss_kb and string.format("%.1fMB", rss_kb / 1024) or parts[6]
+				local rss_mb = rss_kb and string.format("%.1f MB", rss_kb / 1024) or parts[6]
 				
 				-- Format with proper spacing
 				local formatted = string.format(
-					"%-15s %6s %5s %4s %10s %10s %4s %5s %8s %9s %s",
+					"%-15s %6s %5s %4s %11s %11s %4s %5s %8s %9s %s",
 					parts[1],  -- USER
 					parts[2],  -- PID
 					parts[3],  -- %CPU
 					parts[4],  -- %MEM
-					parts[5],  -- VSZ
+					vsz_tb,    -- VSZ (converted to TB)
 					rss_mb,    -- RSS (converted to MB)
 					parts[7],  -- TT
 					parts[8],  -- STAT
@@ -149,6 +154,30 @@ local function refresh()
 	output = formatted_output
 
 	state.full_output = output
+	
+	-- Apply sorting if requested
+	if state.sort_by then
+		local header = table.remove(output, 1)
+		
+		if state.sort_by == "cpu" then
+			table.sort(output, function(a, b)
+				-- Extract %CPU value (3rd column)
+				local cpu_a = tonumber(a:match("%S+%s+%S+%s+(%S+)")) or 0
+				local cpu_b = tonumber(b:match("%S+%s+%S+%s+(%S+)")) or 0
+				return cpu_a > cpu_b
+			end)
+		elseif state.sort_by == "mem" then
+			table.sort(output, function(a, b)
+				-- Extract RSS value (6th column, parse the number before " MB")
+				local rss_a = tonumber(a:match("%S+%s+%S+%s+%S+%s+%S+%s+%S+%s+([%d.]+)%s+MB")) or 0
+				local rss_b = tonumber(b:match("%S+%s+%S+%s+%S+%s+%S+%s+%S+%s+([%d.]+)%s+MB")) or 0
+				return rss_a > rss_b
+			end)
+		end
+		
+		table.insert(output, 1, header)
+	end
+	
 	local display_lines = apply_filter(output)
 
 	vim.bo[state.bufnr].modifiable = true
@@ -234,6 +263,18 @@ local function set_filter()
 	end)
 end
 
+local function sort_by_cpu()
+	state.sort_by = "cpu"
+	refresh()
+	vim.notify("Sorted by CPU usage (highest first)", vim.log.levels.INFO)
+end
+
+local function sort_by_mem()
+	state.sort_by = "mem"
+	refresh()
+	vim.notify("Sorted by memory usage (highest first)", vim.log.levels.INFO)
+end
+
 local function inspect_process()
 	local line = vim.api.nvim_get_current_line()
 	local pid = get_pid_from_line(line)
@@ -252,14 +293,14 @@ local function inspect_process()
 		return
 	end
 	
-	-- Format the output with proper alignment and RSS in MB
+	-- Format the output with proper alignment and RSS in MB, VSZ in TB
 	local formatted_output = {}
 	for i, line in ipairs(detail_output) do
 		if i == 1 then
-			-- Header line - update RSS to RSS(MB)
+			-- Header line - update VSZ to VSZ(TB) and RSS to RSS(MB)
 			local header = string.format(
-				"%-15s %6s %5s %4s %10s %10s %4s %5s %8s %9s %s",
-				"USER", "PID", "%CPU", "%MEM", "VSZ", "RSS(MB)", "TT", "STAT", "STARTED", "TIME", "COMMAND"
+				"%-15s %6s %5s %4s %11s %11s %4s %5s %8s %9s %s",
+				"USER", "PID", "%CPU", "%MEM", "VSZ(TB)", "RSS(MB)", "TT", "STAT", "STARTED", "TIME", "COMMAND"
 			)
 			table.insert(formatted_output, header)
 		else
@@ -279,18 +320,22 @@ local function inspect_process()
 			local command = line:match(string.rep("%S+%s+", 10) .. "(.*)")
 			
 			if #parts >= 10 then
+				-- Convert VSZ from KB to TB
+				local vsz_kb = tonumber(parts[5])
+				local vsz_tb = vsz_kb and string.format("%.3f TB", vsz_kb / 1073741824) or parts[5]
+				
 				-- Convert RSS from KB to MB
 				local rss_kb = tonumber(parts[6])
-				local rss_mb = rss_kb and string.format("%.1fMB", rss_kb / 1024) or parts[6]
+				local rss_mb = rss_kb and string.format("%.1f MB", rss_kb / 1024) or parts[6]
 				
 				-- Format with proper spacing
 				local formatted = string.format(
-					"%-15s %6s %5s %4s %10s %10s %4s %5s %8s %9s %s",
+					"%-15s %6s %5s %4s %11s %11s %4s %5s %8s %9s %s",
 					parts[1],  -- USER
 					parts[2],  -- PID
 					parts[3],  -- %CPU
 					parts[4],  -- %MEM
-					parts[5],  -- VSZ
+					vsz_tb,    -- VSZ (converted to TB)
 					rss_mb,    -- RSS (converted to MB)
 					parts[7],  -- TT
 					parts[8],  -- STAT
@@ -526,6 +571,8 @@ local function setup_buffer()
 	vim.keymap.set("n", "p", open_proc_line, opts)
 	vim.keymap.set("n", "q", "<cmd>q!<CR>", opts)
 	vim.keymap.set("n", "f", set_filter, opts)
+	vim.keymap.set("n", "gC", sort_by_cpu, opts)
+	vim.keymap.set("n", "gm", sort_by_mem, opts)
 
 	return bufnr
 end
@@ -536,6 +583,7 @@ function M.open()
 	vim.api.nvim_win_set_buf(0, bufnr)
 	vim.wo.wrap = false
 	state.filter = nil
+	state.sort_by = nil
 	refresh()
 end
 
@@ -544,6 +592,7 @@ function M.open_this_buffer()
 	setup_buffer()
 	vim.wo.wrap = false
 	state.filter = nil
+	state.sort_by = nil
 	refresh()
 end
 

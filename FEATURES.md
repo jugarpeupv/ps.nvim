@@ -9,6 +9,8 @@
 - ✅ Inspect process (detailed view) with `I`
 - ✅ Visual mode selection + `K` to kill multiple processes
 - ✅ Filter processes by name with `f` or `/` key
+- ✅ Sort processes by CPU usage with `gC` key
+- ✅ Sort processes by memory usage with `gm` key
 - ✅ Open `/proc` filesystem with `p` key
 - ✅ Close buffer with `q` key
 
@@ -17,9 +19,10 @@
 - Based on ps.vim plugin architecture
 - Uses vim.ui.input for filter prompts
 - Case-insensitive filtering
+- Sortable by CPU and memory usage
 - Maintains cursor position after refresh
 - Proper buffer management (nofile, noswap)
-- Syntax highlighting for ps output
+- Syntax highlighting for ps output with VSZ (TB) and RSS (MB) display
 
 ### Commands Available
 - `:PS` - Open new process viewer buffer
@@ -57,7 +60,8 @@ processmonitor.nvim/
 ## Key Improvements Over ps.vim
 1. **Lua-based**: Native Neovim implementation
 2. **Filtering**: Built-in process filtering by name
-3. **Better UX**: Uses vim.ui.input for interactive prompts
-4. **Modern API**: Uses Neovim's latest Lua APIs
-5. **Syntax highlighting**: Enhanced visual feedback
-6. **Documentation**: Comprehensive README with examples
+3. **Sorting**: Sort by CPU or memory usage
+4. **Better UX**: Uses vim.ui.input for interactive prompts
+5. **Modern API**: Uses Neovim's latest Lua APIs
+6. **Syntax highlighting**: Enhanced visual feedback with VSZ/RSS formatting
+7. **Documentation**: Comprehensive README with examples

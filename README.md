@@ -9,6 +9,7 @@ A Neovim plugin to view and manage processes from within Neovim.
 - Kill processes directly from the buffer
 - Kill multiple processes using visual selection
 - Filter processes by name
+- Sort processes by CPU or memory usage
 - Refresh process list
 - Open `/proc` filesystem for processes (Linux)
 
@@ -82,6 +83,8 @@ When in a ps buffer:
 | `p` | Open `/proc` directory for process |
 | `q` | Close buffer |
 | `f` or `/` | Filter processes by name |
+| `gC` | Sort by CPU usage (highest first) |
+| `gm` | Sort by memory usage (highest first) |
 
 ##### Visual Mode
 
@@ -114,6 +117,15 @@ To clear the filter:
 2. Clear the input and press Enter
 
 The filter is case-insensitive and searches across the entire process line.
+
+### Sorting
+
+You can sort the process list by different criteria:
+
+- **Sort by CPU**: Press `gC` to sort processes by CPU usage (highest first)
+- **Sort by Memory**: Press `gm` to sort processes by memory/RSS usage (highest first)
+
+The sort order persists when you refresh the list with `r`. To return to the default order, close and reopen the buffer.
 
 ## Configuration
 
