@@ -457,16 +457,25 @@ local function inspect_process()
 	local cwd_output = vim.fn.systemlist(cwd_cmd)
 	local cwd = cwd_output[1] or ""
 
-	-- Create a new buffer for inspection
-	local bufnr = vim.api.nvim_create_buf(true, false)
-	vim.bo[bufnr].buftype = "nofile"
-	vim.bo[bufnr].bufhidden = "hide"
-	vim.bo[bufnr].swapfile = false
-	vim.bo[bufnr].filetype = "psdetail"
-	
 	-- Use unique buffer name with PID
 	local buf_name = "processmonitor://inspect/" .. pid
-	vim.api.nvim_buf_set_name(bufnr, buf_name)
+	
+	-- Check if buffer already exists for this PID
+	local existing_bufnr = vim.fn.bufnr(buf_name)
+	local bufnr
+	
+	if existing_bufnr ~= -1 and vim.api.nvim_buf_is_valid(existing_bufnr) then
+		-- Buffer exists, reuse it
+		bufnr = existing_bufnr
+	else
+		-- Create a new buffer for inspection
+		bufnr = vim.api.nvim_create_buf(true, false)
+		vim.bo[bufnr].buftype = "nofile"
+		vim.bo[bufnr].bufhidden = "hide"
+		vim.bo[bufnr].swapfile = false
+		vim.bo[bufnr].filetype = "psdetail"
+		vim.api.nvim_buf_set_name(bufnr, buf_name)
+	end
 
 	-- Build the content
 	local content = {
