@@ -203,27 +203,30 @@ local function refresh()
 	
 	local display_lines = apply_filter(output)
 
-	-- Build status message
+	-- Build status message with keymap hints in one line
 	local status_parts = {}
 	if state.auto_reload then
-		table.insert(status_parts, string.format("AUTO-RELOAD: ON | Interval: %ds", state.auto_reload_interval / 1000))
+		table.insert(status_parts, string.format("AUTO-RELOAD: ON (%ds)", state.auto_reload_interval / 1000))
 	else
 		table.insert(status_parts, "AUTO-RELOAD: OFF")
 	end
 	
 	if state.filter then
-		table.insert(status_parts, 'TEXT FILTER: "' .. state.filter .. '"')
+		table.insert(status_parts, 'FILTER: "' .. state.filter .. '"')
 	end
 	
 	if state.pid_filter then
-		table.insert(status_parts, "PID FILTER: " .. state.pid_filter)
+		table.insert(status_parts, "PIN: " .. state.pid_filter)
 	end
 	
-	local status_message = "[ " .. table.concat(status_parts, " | ") .. " | Press 'gl' to toggle auto-reload | Press 'g?' for help ]"
+	-- Add keymap hints to the status line
+	table.insert(status_parts, "r:refresh | K:kill | I:inspect | f:filter | F:pin | gC:sort CPU | gm:sort MEM | gl:auto-reload | g?:help | q:quit")
+	
+	local header_line = "[ " .. table.concat(status_parts, " | ") .. " ]"
 
 	-- Always add header
 	table.insert(display_lines, 1, "")
-	table.insert(display_lines, 1, status_message)
+	table.insert(display_lines, 1, header_line)
 	table.insert(display_lines, 1, string.rep("═", 100))
 
 	vim.bo[state.bufnr].modifiable = true
