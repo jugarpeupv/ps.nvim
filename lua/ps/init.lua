@@ -47,7 +47,7 @@ local function kill_process(pid, silent)
 
 	local cmd = M.config.kill_cmd .. " " .. pid
 	vim.fn.system(cmd)
-	
+
 	if vim.v.shell_error ~= 0 then
 		if not silent then
 			vim.notify("ERROR: command execution failed: " .. cmd, vim.log.levels.ERROR)
@@ -58,25 +58,28 @@ local function kill_process(pid, silent)
 	-- Wait a bit and verify the process is actually gone
 	vim.defer_fn(function()
 		local check_after = vim.fn.system("ps -p " .. pid .. " -o pid= 2>/dev/null")
-		
+
 		if vim.v.shell_error == 0 and not check_after:match("^%s*$") then
 			-- Process still exists after kill attempt
 			if not silent then
-				vim.notify("WARNING: Process " .. pid .. " may still be running (kill signal sent but process persists)", vim.log.levels.WARN)
+				vim.notify(
+					"WARNING: Process " .. pid .. " may still be running (kill signal sent but process persists)",
+					vim.log.levels.WARN
+				)
 			end
 		else
 			if not silent then
 				vim.notify("Process " .. pid .. " has been killed.", vim.log.levels.INFO)
 			end
 		end
-	end, 100)
-	
+	end, 1400)
+
 	return true
 end
 
 local function apply_filter(lines)
 	local filtered = lines
-	
+
 	-- Apply text filter if set
 	if state.filter and state.filter ~= "" then
 		local temp = {}
@@ -87,7 +90,7 @@ local function apply_filter(lines)
 		end
 		filtered = temp
 	end
-	
+
 	-- Apply PID filter if set
 	if state.pid_filter and state.pid_filter ~= "" then
 		local temp = {}
@@ -103,7 +106,7 @@ local function apply_filter(lines)
 		end
 		filtered = temp
 	end
-	
+
 	return filtered
 end
 
@@ -127,7 +130,17 @@ local function refresh()
 			-- Header line - update VSZ to VSZ(TB) and RSS to RSS(MB)
 			local header = string.format(
 				"%-15s %6s %5s %4s %11s %11s %4s %5s %8s %9s %s",
-				"USER", "PID", "%CPU", "%MEM", "VSZ(TB)", "RSS(MB)", "TT", "STAT", "STARTED", "TIME", "COMMAND"
+				"USER",
+				"PID",
+				"%CPU",
+				"%MEM",
+				"VSZ(TB)",
+				"RSS(MB)",
+				"TT",
+				"STAT",
+				"STARTED",
+				"TIME",
+				"COMMAND"
 			)
 			table.insert(formatted_output, header)
 		else
@@ -140,33 +153,33 @@ local function refresh()
 					break
 				end
 			end
-			
+
 			-- Get the COMMAND (rest of the line after the first 10 fields)
 			local command = line:match(string.rep("%S+%s+", 10) .. "(.*)")
-			
+
 			if #parts >= 10 then
 				-- Convert VSZ from KB to TB
 				local vsz_kb = tonumber(parts[5])
 				local vsz_tb = vsz_kb and string.format("%.3f TB", vsz_kb / 1073741824) or parts[5]
-				
+
 				-- Convert RSS from KB to MB
 				local rss_kb = tonumber(parts[6])
 				local rss_mb = rss_kb and string.format("%.1f MB", rss_kb / 1024) or parts[6]
-				
+
 				-- Format with proper spacing
 				local formatted = string.format(
 					"%-15s %6s %5s %4s %11s %11s %4s %5s %8s %9s %s",
-					parts[1],  -- USER
-					parts[2],  -- PID
-					parts[3],  -- %CPU
-					parts[4],  -- %MEM
-					vsz_tb,    -- VSZ (converted to TB)
-					rss_mb,    -- RSS (converted to MB)
-					parts[7],  -- TT
-					parts[8],  -- STAT
-					parts[9],  -- STARTED
+					parts[1], -- USER
+					parts[2], -- PID
+					parts[3], -- %CPU
+					parts[4], -- %MEM
+					vsz_tb, -- VSZ (converted to TB)
+					rss_mb, -- RSS (converted to MB)
+					parts[7], -- TT
+					parts[8], -- STAT
+					parts[9], -- STARTED
 					parts[10], -- TIME
-					command or ""  -- COMMAND
+					command or "" -- COMMAND
 				)
 				table.insert(formatted_output, formatted)
 			else
@@ -177,11 +190,11 @@ local function refresh()
 	output = formatted_output
 
 	state.full_output = output
-	
+
 	-- Apply sorting if requested
 	if state.sort_by then
 		local header = table.remove(output, 1)
-		
+
 		if state.sort_by == "cpu" then
 			table.sort(output, function(a, b)
 				-- Extract %CPU value (3rd column)
@@ -197,10 +210,10 @@ local function refresh()
 				return rss_a > rss_b
 			end)
 		end
-		
+
 		table.insert(output, 1, header)
 	end
-	
+
 	local display_lines = apply_filter(output)
 
 	-- Build status message with keymap hints in one line
@@ -210,18 +223,21 @@ local function refresh()
 	else
 		table.insert(status_parts, "AUTO-RELOAD: OFF")
 	end
-	
+
 	if state.filter then
 		table.insert(status_parts, 'FILTER: "' .. state.filter .. '"')
 	end
-	
+
 	if state.pid_filter then
 		table.insert(status_parts, "PIN: " .. state.pid_filter)
 	end
-	
+
 	-- Add keymap hints to the status line
-	table.insert(status_parts, "r:refresh | K:kill | I:inspect | f:filter | F:pin | gC:sort CPU | gm:sort MEM | gl:auto-reload | g?:help | q:quit")
-	
+	table.insert(
+		status_parts,
+		"r:refresh | K:kill | I:inspect | f:filter | F:pin | gC:sort CPU | gm:sort MEM | gl:auto-reload | g?:help | q:quit"
+	)
+
 	local header_line = "[ " .. table.concat(status_parts, " | ") .. " ]"
 
 	-- Always add header
@@ -320,16 +336,16 @@ local function toggle_pid_filter()
 		refresh()
 		return
 	end
-	
+
 	-- Get PID from current line
 	local line = vim.api.nvim_get_current_line()
 	local pid = get_pid_from_line(line)
-	
+
 	if not pid or pid == "" then
 		vim.notify("No valid PID found on current line", vim.log.levels.ERROR)
 		return
 	end
-	
+
 	-- Set PID filter
 	state.pid_filter = pid
 	vim.notify("Filtering by PID: " .. pid .. " (Press 'F' again to clear)", vim.log.levels.INFO)
@@ -365,7 +381,7 @@ local function inspect_process()
 		vim.notify("ERROR: Failed to get process details for PID " .. pid, vim.log.levels.ERROR)
 		return
 	end
-	
+
 	-- Format the output with proper alignment and RSS in MB, VSZ in TB
 	local formatted_output = {}
 	for i, line in ipairs(detail_output) do
@@ -373,7 +389,17 @@ local function inspect_process()
 			-- Header line - update VSZ to VSZ(TB) and RSS to RSS(MB)
 			local header = string.format(
 				"%-15s %6s %5s %4s %11s %11s %4s %5s %8s %9s %s",
-				"USER", "PID", "%CPU", "%MEM", "VSZ(TB)", "RSS(MB)", "TT", "STAT", "STARTED", "TIME", "COMMAND"
+				"USER",
+				"PID",
+				"%CPU",
+				"%MEM",
+				"VSZ(TB)",
+				"RSS(MB)",
+				"TT",
+				"STAT",
+				"STARTED",
+				"TIME",
+				"COMMAND"
 			)
 			table.insert(formatted_output, header)
 		else
@@ -388,33 +414,33 @@ local function inspect_process()
 					break
 				end
 			end
-			
+
 			-- Get the COMMAND (rest of the line after the first 10 fields)
 			local command = line:match(string.rep("%S+%s+", 10) .. "(.*)")
-			
+
 			if #parts >= 10 then
 				-- Convert VSZ from KB to TB
 				local vsz_kb = tonumber(parts[5])
 				local vsz_tb = vsz_kb and string.format("%.3f TB", vsz_kb / 1073741824) or parts[5]
-				
+
 				-- Convert RSS from KB to MB
 				local rss_kb = tonumber(parts[6])
 				local rss_mb = rss_kb and string.format("%.1f MB", rss_kb / 1024) or parts[6]
-				
+
 				-- Format with proper spacing
 				local formatted = string.format(
 					"%-15s %6s %5s %4s %11s %11s %4s %5s %8s %9s %s",
-					parts[1],  -- USER
-					parts[2],  -- PID
-					parts[3],  -- %CPU
-					parts[4],  -- %MEM
-					vsz_tb,    -- VSZ (converted to TB)
-					rss_mb,    -- RSS (converted to MB)
-					parts[7],  -- TT
-					parts[8],  -- STAT
-					parts[9],  -- STARTED
+					parts[1], -- USER
+					parts[2], -- PID
+					parts[3], -- %CPU
+					parts[4], -- %MEM
+					vsz_tb, -- VSZ (converted to TB)
+					rss_mb, -- RSS (converted to MB)
+					parts[7], -- TT
+					parts[8], -- STAT
+					parts[9], -- STARTED
 					parts[10], -- TIME
-					command or ""  -- COMMAND
+					command or "" -- COMMAND
 				)
 				table.insert(formatted_output, formatted)
 			else
@@ -426,7 +452,7 @@ local function inspect_process()
 
 	-- Get parent process info
 	local parent_info = vim.fn.systemlist("ps -p " .. pid .. " -o ppid=,comm=")
-	
+
 	-- Get child processes (recursive)
 	local all_child_pids = {}
 	local function get_all_children(parent_pid)
@@ -434,12 +460,12 @@ local function inspect_process()
 		for _, child in ipairs(direct_children) do
 			if child ~= "" and tonumber(child) then
 				table.insert(all_child_pids, child)
-				get_all_children(child)  -- Recursive call for grandchildren
+				get_all_children(child) -- Recursive call for grandchildren
 			end
 		end
 	end
 	get_all_children(pid)
-	
+
 	-- Get network connections - filter by exact PID match using grep
 	local network = {}
 	if #all_child_pids > 0 then
@@ -451,10 +477,10 @@ local function inspect_process()
 		local network_cmd = "lsof -i -n -P 2>/dev/null | grep -E '^\\S+\\s+" .. pid .. "\\s'"
 		network = vim.fn.systemlist(network_cmd)
 	end
-	
+
 	-- Get open files (limited to first 20)
 	local open_files = vim.fn.systemlist("lsof -p " .. pid .. " 2>/dev/null | head -20")
-	
+
 	-- Get working directory
 	local cwd_cmd = "lsof -a -p " .. pid .. " -d cwd -Fn 2>/dev/null | grep '^n' | cut -c2-"
 	local cwd_output = vim.fn.systemlist(cwd_cmd)
@@ -462,11 +488,11 @@ local function inspect_process()
 
 	-- Use unique buffer name with PID
 	local buf_name = "processmonitor://inspect/" .. pid
-	
+
 	-- Check if buffer already exists for this PID
 	local existing_bufnr = vim.fn.bufnr(buf_name)
 	local bufnr
-	
+
 	if existing_bufnr ~= -1 and vim.api.nvim_buf_is_valid(existing_bufnr) then
 		-- Buffer exists, reuse it
 		bufnr = existing_bufnr
@@ -647,7 +673,7 @@ local function show_help()
 	local width = 74
 	local height = #help_lines
 	local buf = vim.api.nvim_create_buf(false, true)
-	
+
 	-- Calculate center position
 	local ui = vim.api.nvim_list_uis()[1]
 	local win_width = ui.width
@@ -685,27 +711,31 @@ end
 
 local function toggle_auto_reload()
 	state.auto_reload = not state.auto_reload
-	
+
 	if state.auto_reload then
 		-- Start auto-reload
 		if state.auto_reload_timer then
 			state.auto_reload_timer:stop()
 		end
-		
+
 		state.auto_reload_timer = vim.loop.new_timer()
-		state.auto_reload_timer:start(state.auto_reload_interval, state.auto_reload_interval, vim.schedule_wrap(function()
-			if state.auto_reload and state.bufnr and vim.api.nvim_buf_is_valid(state.bufnr) then
-				refresh()
-			else
-				-- Stop timer if buffer is invalid or auto-reload was disabled
-				if state.auto_reload_timer then
-					state.auto_reload_timer:stop()
-					state.auto_reload_timer = nil
+		state.auto_reload_timer:start(
+			state.auto_reload_interval,
+			state.auto_reload_interval,
+			vim.schedule_wrap(function()
+				if state.auto_reload and state.bufnr and vim.api.nvim_buf_is_valid(state.bufnr) then
+					refresh()
+				else
+					-- Stop timer if buffer is invalid or auto-reload was disabled
+					if state.auto_reload_timer then
+						state.auto_reload_timer:stop()
+						state.auto_reload_timer = nil
+					end
+					state.auto_reload = false
 				end
-				state.auto_reload = false
-			end
-		end))
-		
+			end)
+		)
+
 		vim.notify("Auto-reload enabled (every " .. (state.auto_reload_interval / 1000) .. "s)", vim.log.levels.INFO)
 		-- Refresh immediately to show the indicator
 		refresh()
@@ -795,7 +825,7 @@ local function setup_buffer()
 			state.auto_reload = false
 		end,
 	})
-	
+
 	-- Ensure buffer has content when displayed
 	vim.api.nvim_create_autocmd("BufEnter", {
 		buffer = bufnr,
@@ -817,7 +847,7 @@ end
 function M.open()
 	-- Check if PS buffer already exists
 	local existing_bufnr = vim.fn.bufnr("processmonitor://ps")
-	
+
 	if existing_bufnr ~= -1 and vim.api.nvim_buf_is_valid(existing_bufnr) then
 		-- Buffer exists, check if it's visible in any window
 		for _, win in ipairs(vim.api.nvim_list_wins()) do
@@ -827,7 +857,7 @@ function M.open()
 				return
 			end
 		end
-		
+
 		-- Buffer exists but not visible, show it in a new window
 		vim.cmd("split")
 		vim.api.nvim_win_set_buf(0, existing_bufnr)
@@ -836,7 +866,7 @@ function M.open()
 		-- Don't refresh here - buffer already has content
 		return
 	end
-	
+
 	-- Buffer doesn't exist, create a new one
 	local bufnr = setup_buffer()
 	vim.cmd("split")
@@ -883,7 +913,7 @@ function M.set_filter()
 end
 
 function M.inspect_process()
-  inspect_process()
+	inspect_process()
 end
 
 return M

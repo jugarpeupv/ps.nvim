@@ -76,7 +76,7 @@ local function kill_process(pid, silent)
 
 	local cmd = M.config.kill_cmd .. " " .. pid
 	vim.fn.system(cmd)
-	
+
 	if vim.v.shell_error ~= 0 then
 		if not silent then
 			vim.notify("ERROR: command execution failed: " .. cmd, vim.log.levels.ERROR)
@@ -87,7 +87,7 @@ local function kill_process(pid, silent)
 	-- Wait a bit and verify the process is actually gone
 	vim.defer_fn(function()
 		local check_after = vim.fn.system("ps -p " .. pid .. " -o pid= 2>/dev/null")
-		
+
 		if vim.v.shell_error == 0 and not check_after:match("^%s*$") then
 			if not silent then
 				vim.notify("WARNING: Process " .. pid .. " may still be running", vim.log.levels.WARN)
@@ -98,7 +98,7 @@ local function kill_process(pid, silent)
 			end
 		end
 	end, 100)
-	
+
 	return true
 end
 
@@ -148,7 +148,7 @@ local function inspect_process()
 
 	-- Get parent process info
 	local parent_info = vim.fn.systemlist("ps -p " .. pid .. " -o ppid=,comm=")
-	
+
 	-- Get child processes (recursive)
 	local all_child_pids = {}
 	local function get_all_children(parent_pid)
@@ -161,7 +161,7 @@ local function inspect_process()
 		end
 	end
 	get_all_children(pid)
-	
+
 	-- Get network connections - filter by exact PID match using grep
 	local network = {}
 	if #all_child_pids > 0 then
@@ -172,10 +172,10 @@ local function inspect_process()
 		local network_cmd = "lsof -i -n -P 2>/dev/null | grep -E '^\\S+\\s+" .. pid .. "\\s'"
 		network = vim.fn.systemlist(network_cmd)
 	end
-	
+
 	-- Get open files (limited to first 20)
 	local open_files = vim.fn.systemlist("lsof -p " .. pid .. " 2>/dev/null | head -20")
-	
+
 	-- Get working directory
 	local cwd_cmd = "lsof -a -p " .. pid .. " -d cwd -Fn 2>/dev/null | grep '^n' | cut -c2-"
 	local cwd_output = vim.fn.systemlist(cwd_cmd)
@@ -183,11 +183,11 @@ local function inspect_process()
 
 	-- Use unique buffer name with PID
 	local buf_name = "processmonitor://inspect/" .. pid
-	
+
 	-- Check if buffer already exists for this PID
 	local existing_bufnr = vim.fn.bufnr(buf_name)
 	local bufnr
-	
+
 	if existing_bufnr ~= -1 and vim.api.nvim_buf_is_valid(existing_bufnr) then
 		-- Buffer exists, reuse it
 		bufnr = existing_bufnr
@@ -353,7 +353,7 @@ local function setup_buffer()
 	vim.keymap.set("n", "I", inspect_process, opts)
 	vim.keymap.set("n", "q", "<cmd>q!<CR>", opts)
 	vim.keymap.set("n", "f", set_filter, opts)
-	
+
 	-- Ensure buffer has content when displayed
 	vim.api.nvim_create_autocmd("BufEnter", {
 		buffer = bufnr,
@@ -375,7 +375,7 @@ end
 function M.open()
 	-- Check if LSOF buffer already exists
 	local existing_bufnr = vim.fn.bufnr("processmonitor://lsof")
-	
+
 	if existing_bufnr ~= -1 and vim.api.nvim_buf_is_valid(existing_bufnr) then
 		-- Buffer exists, check if it's visible in any window
 		for _, win in ipairs(vim.api.nvim_list_wins()) do
@@ -385,7 +385,7 @@ function M.open()
 				return
 			end
 		end
-		
+
 		-- Buffer exists but not visible, show it in a new window
 		vim.cmd("split")
 		vim.api.nvim_win_set_buf(0, existing_bufnr)
@@ -394,7 +394,7 @@ function M.open()
 		-- Don't refresh here - buffer already has content
 		return
 	end
-	
+
 	-- Buffer doesn't exist, create a new one
 	local bufnr = setup_buffer()
 	vim.cmd("split")
