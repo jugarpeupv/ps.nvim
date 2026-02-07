@@ -2,6 +2,8 @@
 
 A Neovim plugin to view and manage processes from within Neovim.
 
+![Demo](media/demo.png)
+
 ## Features
 
 - View process list output (`ps aux`) in a Neovim buffer
