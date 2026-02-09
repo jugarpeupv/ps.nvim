@@ -2,6 +2,8 @@
 
 A Neovim plugin to view and manage processes from within Neovim.
 
+Video with a demo: https://www.youtube.com/watch?v=2WDSGvltxHo
+
 ![Demo](media/demo.png)
 
 ## Features
