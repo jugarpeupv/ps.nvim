@@ -129,7 +129,7 @@ local function refresh()
 		if i == 1 then
 			-- Header line - update VSZ to VSZ(TB) and RSS to RSS(MB)
 			local header = string.format(
-				"%-15s %6s %5s %4s %11s %11s %4s %5s %8s %9s %s",
+				"%-16s %6s %5s %4s %11s %11s %4s %5s %8s %9s %s",
 				"USER",
 				"PID",
 				"%CPU",
@@ -158,6 +158,9 @@ local function refresh()
 			local command = line:match(string.rep("%S+%s+", 10) .. "(.*)")
 
 			if #parts >= 10 then
+				-- Truncate USER to 16 characters to preserve alignment
+				local user = parts[1]:sub(1, 16)
+
 				-- Convert VSZ from KB to TB
 				local vsz_kb = tonumber(parts[5])
 				local vsz_tb = vsz_kb and string.format("%.3f TB", vsz_kb / 1073741824) or parts[5]
@@ -168,8 +171,8 @@ local function refresh()
 
 				-- Format with proper spacing
 				local formatted = string.format(
-					"%-15s %6s %5s %4s %11s %11s %4s %5s %8s %9s %s",
-					parts[1], -- USER
+					"%-16s %6s %5s %4s %11s %11s %4s %5s %8s %9s %s",
+					user, -- USER (truncated to 16 chars)
 					parts[2], -- PID
 					parts[3], -- %CPU
 					parts[4], -- %MEM
@@ -388,7 +391,7 @@ local function inspect_process()
 		if i == 1 then
 			-- Header line - update VSZ to VSZ(TB) and RSS to RSS(MB)
 			local header = string.format(
-				"%-15s %6s %5s %4s %11s %11s %4s %5s %8s %9s %s",
+				"%-16s %6s %5s %4s %11s %11s %4s %5s %8s %9s %s",
 				"USER",
 				"PID",
 				"%CPU",
@@ -419,6 +422,9 @@ local function inspect_process()
 			local command = line:match(string.rep("%S+%s+", 10) .. "(.*)")
 
 			if #parts >= 10 then
+				-- Truncate USER to 16 characters to preserve alignment
+				local user = parts[1]:sub(1, 16)
+
 				-- Convert VSZ from KB to TB
 				local vsz_kb = tonumber(parts[5])
 				local vsz_tb = vsz_kb and string.format("%.3f TB", vsz_kb / 1073741824) or parts[5]
@@ -429,8 +435,8 @@ local function inspect_process()
 
 				-- Format with proper spacing
 				local formatted = string.format(
-					"%-15s %6s %5s %4s %11s %11s %4s %5s %8s %9s %s",
-					parts[1], -- USER
+					"%-16s %6s %5s %4s %11s %11s %4s %5s %8s %9s %s",
+					user, -- USER (truncated to 16 chars)
 					parts[2], -- PID
 					parts[3], -- %CPU
 					parts[4], -- %MEM
